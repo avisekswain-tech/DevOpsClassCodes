@@ -1,0 +1,26 @@
+{
+  "family": "first-run-task-definition",
+  "taskRoleArn": "",
+  "executionRoleArn": "arn:aws:iam::011194234014:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "first-run-task-definition",
+      "image": "011194234014.dkr.ecr.us-east-2.amazonaws.com/irving:%BUILD_NUMBER%",
+      "cpu": 1024,
+      "memory": 2048,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ]
+    }
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "2048"
+}
