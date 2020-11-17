@@ -5,5 +5,6 @@ RUN mkdir /usr/local/tomcat
 RUN wget https://downloads.apache.org/tomcat/tomcat-8/v8.5.59/bin/apache-tomcat-8.5.59.tar.gz  -O /tmp/tomcat.tar.gz
 RUN cd /tmp && tar xvfz tomcat.tar.gz
 RUN cp -Rv /tmp/apache-tomcat-8.*/* /usr/local/tomcat/
+COPY ./target/addressbook.war /usr/local/tomcat/webapps/
 EXPOSE 8080
 CMD /usr/local/tomcat/bin/catalina.sh run
