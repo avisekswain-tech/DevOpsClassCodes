@@ -5,7 +5,7 @@
   "networkMode": "awsvpc",
   "containerDefinitions": [
     {
-      "name": "first-run-task-definition",
+      "name": "ecs-fargate-cluster-svc",
       "image": "011194234014.dkr.ecr.us-east-2.amazonaws.com/irving:%BUILD_NUMBER%",
       "cpu": 1024,
       "memory": 2048,
