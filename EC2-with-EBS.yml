@@ -1,0 +1,253 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Cloud Formation Stack to create EC2, security Group
+Parameters:
+  VPC:
+    Description: Name of the VPC where resources will  be created
+    Type: String
+    Default: 'vpc-338c2758'
+  Subnet:
+    Description: Subnet ID of ec2
+    Type: String
+    Default: 'subnet-6649411c'
+  AppServerENIName:
+    Type: String
+    Description: Name of App server ENI
+    Default: 'App-Server-ENI'
+  DBServerENIName:
+    Description: Name of DB server ENI
+    Type: String
+    Default: 'DB-Server-ENI'
+  AppServerName:
+    Type: String
+    Description: Name of App server
+    Default: 'App-Server'
+  DBServerName:
+    Type: String
+    Description: Name of DB server
+    Default: 'DB-Server'
+  AppServerSecurityGroupName:
+    Type: String
+    Description: Name of App Server Security Group
+    Default: 'AppServer-SecurityGroup'
+  DBServerSecurityGroupName:
+    Type: String
+    Description: Name of DB Server Security Group
+    Default: 'DBServer-SecurityGroup'
+  KeyName:
+    Type: String
+    Description: Public key Name
+    Default : 'dockerimage'
+  AppServerAMI:
+    Type: String
+    Description: AMI ID for App Server 
+    Default: 'ami-0ebc8f6f580a04647'
+  DBServerAMI:
+    Type: String
+    Description: AMI ID for DB Server 
+    Default: 'ami-056f139b85f494248'
+  AppServerInstancetype:
+    Type: String
+    Description: Instance type of App server
+    Default: 't2.micro'
+  DBServerInstancetype:
+    Type: String
+    Description: Instance type of App server
+    Default: 't2.micro'
+Metadata:
+  AWS::CloudFormation::Interfaces:
+    ParameterGroups:
+    - Label:
+        default: ENI deatils for App/DB server
+      Parameters:
+      - VPC
+      - Subnet
+      - AppServerENIName
+      - DBServerENIName
+      - AppServerName
+      - DBServerName
+      - AppServerSecurityGroupName
+      - DBServerSecurityGroupName
+      - KeyName
+      - AppServerInstancetype
+      - DBServerInstancetype
+      - AppServerAMI
+      - DBServerAMI
+Resources:
+  AppServerENI:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: App Server ENI
+      SubnetId: !Ref Subnet
+      GroupSet: [!Ref AppServerSecurityGroup]
+      Tags:
+        - Key: Name
+          Value: AppServerENIName
+        - Key: Service
+          Value: ENI
+  AppServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AppServerAMI
+      InstanceType: !Ref AppServerInstancetype
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: 100
+          VolumeType: gp2
+          DeleteOnTermination: true
+      NetworkInterfaces:
+         -
+           NetworkInterfaceId: !Ref AppServerENI
+           DeviceIndex: '0'
+      Tags:
+      - Key: Name
+        Value: !Ref AppServerName
+  AppServerVolume1:
+    Type: AWS::EC2::Volume
+    Properties:
+      Size: 100
+      VolumeType: gp2
+      AvailabilityZone:
+        Fn::GetAtt:
+        - AppServer
+        - AvailabilityZone
+      Tags:
+      - Key: Service
+        Value: EBS
+      - Key: Name
+        Value: !Sub "${AppServerName}-1.vol"
+      - Key: Associate Server Name
+        Value: !Ref AppServerName
+  AppServerVolume1MountPoint1:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      InstanceId:
+        Ref: AppServer
+      VolumeId:
+        Ref: AppServerVolume1
+      Device: xvdd
+  AppServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Application Security Group
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Ref AppServerSecurityGroupName
+        - Key: Service
+          Value: SecurityGroup
+  AppServerSecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress within Application security group
+      SourceSecurityGroupId: !Ref 'AppServerSecurityGroup'
+      IpProtocol: -1
+      GroupId: !Ref AppServerSecurityGroup
+  AppServerSecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress on App Server on port 8080
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 8080
+      ToPort: 8080
+      GroupId: !Ref AppServerSecurityGroup
+  AppServerSecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress on EC2 on port 22
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 22  
+      ToPort: 22
+      GroupId: !Ref AppServerSecurityGroup
+  DBServerENI:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: DB Server ENI
+      SubnetId: !Ref Subnet
+      GroupSet: [!Ref DBServerSecurityGroup]
+      Tags:
+        - Key: Name
+          Value: DBServerENIName
+        - Key: Service
+          Value: ENI
+  DBServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref DBServerAMI
+      InstanceType: !Ref DBServerInstancetype
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: 100
+          VolumeType: gp2
+          DeleteOnTermination: true
+      NetworkInterfaces:
+         -
+           NetworkInterfaceId: !Ref DBServerENI
+           DeviceIndex: '0'
+      Tags:
+      - Key: Name
+        Value: !Ref DBServerName
+  DBServerVolume1:
+    Type: AWS::EC2::Volume
+    Properties:
+      Size: 100
+      VolumeType: gp2
+      AvailabilityZone:
+        Fn::GetAtt:
+        - DBServer
+        - AvailabilityZone
+      Tags:
+      - Key: Service
+        Value: EBS
+      - Key: Name
+        Value: !Sub "${DBServerName}-1.vol"
+      - Key: Associate Server Name
+        Value: !Ref DBServerName
+  DBServerVolume1MountPoint1:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      InstanceId:
+        Ref: DBServer
+      VolumeId:
+        Ref: DBServerVolume1
+      Device: xvdd
+  DBServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Database Security Group
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Ref DBServerSecurityGroupName
+        - Key: Service
+          Value: SecurityGroup
+  DBServerSecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress within Database security group
+      SourceSecurityGroupId: !Ref 'DBServerSecurityGroup'
+      IpProtocol: -1
+      GroupId: !Ref DBServerSecurityGroup
+  DBServerSecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress on Database Server on port 8080
+      SourceSecurityGroupId: !Ref 'DBServerSecurityGroup'
+      IpProtocol: tcp
+      FromPort: 1433
+      ToPort: 1433
+      GroupId: !Ref DBServerSecurityGroup
+  DBServerSecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress on Database Server on port 3389 for RDP
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 3389  
+      ToPort: 3389
+      GroupId: !Ref DBServerSecurityGroup

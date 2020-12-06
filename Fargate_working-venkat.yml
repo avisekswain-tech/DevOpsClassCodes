@@ -1,0 +1,428 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Cloud Formation Stack to create ECS Fargate Cluster, IAM roles, service, task definitions, load banlancer
+Parameters:
+  VPC:
+    Description: Name of the VPC where resources will  be created
+    Type: String
+    Default: 'vpc-338c2758'
+  ECSClusterName:
+    Description: Name OF ECS Fargate Cluster
+    Type: String
+    Default: 'ecs-fargate-cluster-test'
+  ECSContainerSubnet1:
+    Description: Subnet ID of Container Subnet 1
+    Type: String
+    Default: 'subnet-5239ea39'
+  ECSContainerSubnet2:
+    Description: Subnet ID of Container Subnet 2
+    Type: String
+    Default: 'subnet-6649411c'
+  # ALBCertificateARN:
+    # Description: Certificate ARN for Application Load Balancer
+    # Type: String
+  DockerImage:
+    Description: Docker Image Link
+    Type: String
+    Default: '045959739851.dkr.ecr.us-east-1.amazonaws.com/tomcat:1'
+  ExecutionRoleArn:
+    Type: String
+    Default: "arn:aws:iam::045959739851:role/ecsTaskExecutionRole"
+    Description: Task Execution Role for the service
+  ServiceName:
+    Description: Provide valid ECS Service name to be used
+    Type: String
+    Default: 'ecs-fargate-cluster-svc'
+  ServiceRole: 
+    Type: String
+    Default: "AWSServiceRoleForECS"
+    Description: Optional Service Role
+  TaskRoleArn:
+    Type: String
+    Default: ""
+    Description: Optional Task Role for the service
+  ContainerPort:
+    Description: Container port where application 1 will be exposed
+    Type: Number
+    Default: '8080'
+  TaskCPU:
+    Description: Fargate Task CPU Available CPU values 256 TO 4096
+    Type: Number
+    Default: '4096'
+    AllowedValues:
+      - 256
+      - 512
+      - 1024
+      - 2048
+      - 4096
+  TaskMemory:
+    Description: Task Memory Available memory values Between 0.5GB, 1GB to 30 GB in 1 GB increments
+    Type: Number
+    Default: '16384'
+    AllowedValues:
+      - 512
+      - 1024
+      - 2048
+      - 3072
+      - 4096
+      - 5120
+      - 6144
+      - 7168
+      - 8192
+      - 9216
+      - 10240
+      - 11264
+      - 12288
+      - 13312
+      - 14336
+      - 15360
+      - 16384
+      - 17408
+      - 18432
+      - 19456
+      - 20480
+      - 21504
+      - 22528
+      - 23552
+      - 24576
+      - 25600
+      - 26624
+      - 27648
+      - 28672
+      - 29696
+      - 30720
+  ContainerCPU:
+    Description: Container CPU
+    Type: Number
+    Default: '4096'
+    AllowedValues:
+      - 256
+      - 512
+      - 1024
+      - 2048
+      - 4096
+  ContainerMemory:
+    Description: Container Memory
+    Type: Number
+    Default: '16384'
+    AllowedValues:
+      - 512
+      - 1024
+      - 2048
+      - 3072
+      - 4096
+      - 5120
+      - 6144
+      - 7168
+      - 8192
+      - 9216
+      - 10240
+      - 11264
+      - 12288
+      - 13312
+      - 14336
+      - 15360
+      - 16384
+      - 17408
+      - 18432
+      - 19456
+      - 20480
+      - 21504
+      - 22528
+      - 23552
+      - 24576
+      - 25600
+      - 26624
+      - 27648
+      - 28672
+      - 29696
+      - 30720
+  LoadBalanerPort:
+    Description: Application Load Balancer port (80 - HTTP, 443 - HTTPS)
+    Type: Number
+    Default: '80'
+  LoadBalancerName:
+    Type: String
+    Description: Load Balncer Name
+    Default: 'test-load-alb'
+  AutoScalingRoleName:
+    Type: String
+    Description: Auto Scaling Role Name
+    Default: 'test-auto-scaling'
+  AutoScalingPolicyName:
+    Type: String
+    Description: Auto Scaling Policy Name
+    Default: 'testAutoScalingPolicy'
+  # HealthCheckPath:
+    # Type: String
+    # Default: '/'
+  MinContainers:
+    Description: Minimum number of containers required
+    Type: Number
+    Default: '1'
+  MaxContainers:
+    Description: Maximum number of containers required
+    Type: Number
+    Default: '5'
+  AutoScalingTargetValue:
+    Type: Number
+    Default: '50'
+  # LogGroup:
+    # Type: String
+    # Description: AWS log group Name
+    # Default: 'ecs/cluster/demolog'
+  ApplicationName:
+    Type: String
+    Description: Application Name
+    Default: 'test'
+  Environment:
+    Type: String
+    Description: Valid Environment Name
+    Default: DEV
+    AllowedValues:
+      - DEV
+      - QA
+      - UAT
+      - PROD
+      - UAT-DR
+      - DR      
+Conditions:
+  ServiceRoleProvided: !Not [ !Equals [!Ref 'ServiceRole', ''] ]
+  TaskRoleProvided: !Not [ !Equals [!Ref 'TaskRoleArn', ''] ]
+Metadata:
+  AWS::CloudFormation::Interfaces:
+    ParameterGroups:
+    - Label:
+        default: VPC, Subnet Details
+      Parameters:
+      - VPC
+      - ECSContainerSubnet1
+      - ECSContainerSubnet2
+    - Label:
+        default: Cluster Details 
+      Parameters:
+      - ECSClusterName
+      - ServiceName      
+      - ContainerPort
+      - TaskCPU
+      - TaskMemory
+      - ContainerCPU
+      - ContainerMemory
+      - DockerImage
+    - Label:
+        default: IAM role 
+      Parameters:
+      - AutoScalingRoleName
+      - AutoScalingPolicyName
+      - MinContainers
+      - MaxContainers
+      - AutoScalingTargetValue
+Resources:
+  Cluster: 
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref ECSClusterName
+      Tags:
+        - Key: App Name
+          Value: !Ref ApplicationName
+        - Key: Environment Name
+          Value: !Ref Environment
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Ref ServiceName
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !Ref TaskCPU
+      Memory: !Ref TaskMemory
+      ExecutionRoleArn: !Ref ExecutionRoleArn
+      TaskRoleArn: 
+            Fn::If:
+                  - 'TaskRoleProvided'
+                  - !Ref 'TaskRoleArn'
+                  - !Ref "AWS::NoValue"
+      ContainerDefinitions:
+        - Name: !Ref ServiceName
+          Image: !Ref DockerImage
+          Cpu: !Ref ContainerCPU
+          Memory: !Ref ContainerMemory
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+          Essential: "true"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: 
+      - LoadBalancerListener
+    Properties:
+      ServiceName: !Ref ServiceName
+      Cluster: !Ref ECSClusterName
+      TaskDefinition: !Ref TaskDefinition
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups: 
+            - !Ref ContainerSecurityGroup
+          Subnets: 
+            - !Ref ECSContainerSubnet1
+            - !Ref ECSContainerSubnet2
+      LoadBalancers:
+        - ContainerName: !Ref ServiceName
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref TargetGroup
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${ApplicationName}-ECS-ALB
+      Scheme: internet-facing
+      Subnets: 
+        - !Ref ECSContainerSubnet1
+        - !Ref ECSContainerSubnet2
+      SecurityGroups: 
+        - !Ref LoadBalancerSecurityGroup
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: !Ref LoadBalanerPort
+      Protocol: HTTP 
+      DefaultActions: 
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      # Certificates:
+        # - CertificateARN: !Ref ALBCertificateARN
+  # LoadBalancerCustomListenerRule:
+    # Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    # Properties:
+      # Actions:
+      # - Type: forward
+        # TargetGroupArn: !Ref TargetGroup2
+      # Conditions:
+      # - Field: host-header
+        # Values: 
+        # - 'myapp.example.com'
+      # ListenerArn: !Ref LoadBalancer
+      # Priority: 1
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      TargetType: ip
+      Name: !Sub ${ApplicationName}-ECS-TG
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VPC
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Container security group to control traffic between Load Balancer and Container
+      VpcId: !Ref VPC
+      Tags: 
+      - Key: App Name
+        Value: !Ref ApplicationName
+      - Key: Name
+        Value: !Sub ${ApplicationName}-ContainerSecurityGroup
+  ContainerSecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from the ALB to container on container port
+      SourceSecurityGroupId: !Ref 'LoadBalancerSecurityGroup'
+      IpProtocol: tcp
+      FromPort: !Ref ContainerPort
+      ToPort: !Ref ContainerPort
+      GroupId: !Ref ContainerSecurityGroup
+  ContainerSecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from other containers in the same security group
+      GroupId: !Ref 'ContainerSecurityGroup'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'ContainerSecurityGroup'
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Load Balancer Security Group
+      VpcId: !Ref VPC
+      Tags: 
+      - Key: App Name
+        Value: !Ref ApplicationName
+      - Key: Name
+        Value: LoadBalancerSG
+  LoadBalancerSecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress to access application via ALB
+      GroupId: !Ref 'LoadBalancerSecurityGroup'
+      IpProtocol: tcp
+      FromPort: !Ref LoadBalanerPort
+      ToPort: !Ref LoadBalanerPort
+      CidrIp: 0.0.0.0/0
+  LoadBalancerSecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: To allow traffic within ALB security group
+      GroupId: !Ref 'LoadBalancerSecurityGroup'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'LoadBalancerSecurityGroup'
+  # LoadBalancerSecurityGroupIngress3:
+    # Type: AWS::EC2::SecurityGroupIngress
+    # Properties:
+      # Description: Ingress from the public network to ALB (HTTP Protocol)
+      # GroupId: !Ref 'LoadBalancerSecurityGroup'
+      # IpProtocol: tcp
+      # FromPort: 80
+      # ToPort: 80
+      # CidrIp: 0.0.0.0/0
+  # AutoScalingTarget:
+    # Type: AWS::ApplicationAutoScaling::ScalableTarget
+    # Properties:
+      # MinCapacity: !Ref MinContainers
+      # MaxCapacity: !Ref MaxContainers
+# #      ResourceId: !Join ["/", [service, "!GetAtt Cluster.Name", "!GetAtt Service.Name"]]
+      # ResourceId: service/fargatedemocluster/tomcat
+      # ScalableDimension: ecs:service:DesiredCount
+      # ServiceNamespace: ecs
+      # RoleARN: !GetAtt AutoScalingRole.Arn
+  # AutoScalingPolicy:
+    # Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    # Properties:
+      # PolicyName: !Ref AutoScalingPolicyName
+      # PolicyType: TargetTrackingScaling
+      # ScalingTargetId: !Ref AutoScalingTarget
+      # TargetTrackingScalingPolicyConfiguration:
+        # PredefinedMetricSpecification:
+          # PredefinedMetricType: ECSServiceAverageCPUUtilization
+        # ScaleInCooldown: 5
+        # ScaleOutCooldown: 5
+        # TargetValue: !Ref AutoScalingTargetValue
+  # AutoScalingRole:
+    # Type: AWS::IAM::Role
+    # Properties:
+      # RoleName: !Ref AutoScalingRoleName
+      # AssumeRolePolicyDocument:
+        # Statement:
+          # - Effect: Allow
+            # Principal:   
+              # service: ecs-tasks.amazonaws.com  
+            # Action: 'sts:AssumeRole'  
+      # ManagedPolicyArns:
+        # - 'arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoScaleRole'      

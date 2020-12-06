@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Cloud Formation Stack to create ECS Fargate IAM roles
+Parameters:
+  TaskExecutionRoleName:
+    Description: ECS Task ExecutionRole
+    Type: String
+    Default: DemoTaskexecutionIAMrole-test
+Resources:
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:   
+            Service: 
+            - ecs-tasks.amazonaws.com  
+          Action: 
+          - 'sts:AssumeRole'  
+      Path: "/"
+      RoleName: !Ref TaskExecutionRoleName
+      ManagedPolicyArns:
+      - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'         
+      Policies:
+      - PolicyName: TaskExecutionRoleTest
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+           - Sid: ecr
+             Effect: Allow
+             Action:
+             - logs:CreateLogStream
+             - secretsmanager:GetSecretValue
+             - kms:Decrypt
+             - ecr:GetDownloadUrlForLayer
+             - ecr:BatchGetImage
+             - ecr:CompleteLayerUpload
+             - ecr:GetAuthorizationToken
+             - ecr:UploadLayerPart
+             - logs:PutLogEvents
+             - ecr:InitiateLayerUpload
+             - ecr:BatchCheckLayerAvailability
+             - ecr:PutImage      
+             Resource: "*"
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: ExecutionRole

@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: AWS Cloud Formation Stack to create EC2, security Group
+
+Parameters:
+  VPC:
+    Description: Name of the VPC where resources will  be created
+    Type: String
+    Default: 'vpc-338c2758'
+  EC2Subnet:
+    Description: Subnet ID of ec2
+    Type: String
+    Default: 'subnet-6649411c' 
+  EC2ENIName:
+    Type: String
+    Description: Name of EC2 ENI
+    Type: String
+    Default: 'Server1-ENI'
+  EC2Name:
+    Type: String
+    Description: Name of EC2 
+    Type: String
+    Default: 'Server1'
+  EC2SecurityGroupName:
+    Type: String
+    Description: Name of Security Group
+    Type: String
+    Default: 'Server1-SecurityGroup'
+  KeyName:
+    Type: String
+    Description: Public key Name
+    Default: 'dockerimage'
+  AMI:
+    Type: String
+    Description: AMI ID
+    Default: 'ami-0ebc8f6f580a04647'
+  Instancetype:
+    Type: String
+    Description: Instance type of EC2
+    Default: 't2.micro'
+Metadata:
+  AWS::CloudFormation::Interfaces:
+    ParameterGroups:
+    - Label:
+        default: ENI deatils for app server
+      Parameters:
+      - VPC
+      - EC2Subnet
+      - EC2ENIName
+      - EC2Name
+      - EC2SecurityGroupName
+      - KeyName
+      - Instancetype
+      - AMI
+Resources:
+  EC2ENI:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: EC2 ENI
+      SubnetId: !Ref EC2Subnet
+      GroupSet: [!Ref EC2SecurityGroup]
+      Tags:
+        - Key: Name
+          Value: EC2ENIName
+        - Key: Service
+          Value: ENI
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref Instancetype
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: 200
+          VolumeType: gp2
+          DeleteOnTermination: true
+      NetworkInterfaces:
+         -
+           NetworkInterfaceId: !Ref EC2ENI
+           DeviceIndex: '0'
+      Tags:
+      - Key: Name
+        Value: !Ref EC2Name
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Application Security Group
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Ref EC2SecurityGroupName
+        - Key: Service
+          Value: SecurityGroup
+  EC2SecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress within security group
+      SourceSecurityGroupId: !Ref 'EC2SecurityGroup'
+      IpProtocol: -1
+      GroupId: !Ref EC2SecurityGroup
+  EC2SecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress on EC2 on port 8080
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 8080
+      ToPort: 8080
+      GroupId: !Ref EC2SecurityGroup
+  EC2SecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress on EC2 on port 22
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 22  
+      ToPort: 22
+      GroupId: !Ref EC2SecurityGroup

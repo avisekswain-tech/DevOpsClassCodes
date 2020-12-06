@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Cloud Formation Stack to create ECS Fargate IAM roles
+Parameters:
+  IAMAdminRoleName:
+    Description: IAM role for ec2 to have admin access for all the aws services
+    Type: String
+    Default: AdminAccess-IAM-Role
+Resources:
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:   
+            Service: 
+            - ec2.amazonaws.com  
+          Action: 
+          - 'sts:AssumeRole'  
+      Path: "/"
+      RoleName: !Ref IAMAdminRoleName
+      Policies:
+      - PolicyName: Admin-Access-test
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+           - Sid: ec2
+             Effect: Allow
+             Action: "*"      
+             Resource: "*"
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: IAMRole
