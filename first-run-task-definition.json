@@ -1,7 +1,7 @@
 {
-  "family": "first-run-task-definition",
+  "family": "ecs-fargate-cluster-svc",
   "taskRoleArn": "",
-  "executionRoleArn": "arn:aws:iam::011194234014:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::011194234014:role/DemoTaskexecutionIAMrole-test",
   "networkMode": "awsvpc",
   "containerDefinitions": [
     {
