@@ -20,7 +20,7 @@ Parameters:
     Type: String
     Description: Name of EC2 
     Type: String
-    Default: 'Server2_Dec06'
+    Default: 'Venkat_EC2'
   EC2SecurityGroupName:
     Type: String
     Description: Name of Security Group
