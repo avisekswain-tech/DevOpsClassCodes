@@ -23,10 +23,10 @@ Parameters:
   DockerImage:
     Description: Docker Image Link
     Type: String
-    Default: '045959739851.dkr.ecr.us-east-1.amazonaws.com/tomcat:1'
+    Default: '011194234014.dkr.ecr.us-east-2.amazonaws.com/irving:25'
   ExecutionRoleArn:
     Type: String
-    Default: "arn:aws:iam::045959739851:role/ecsTaskExecutionRole"
+    Default: "arn:aws:iam::011194234014:role/DemoTaskexecutionIAMrole-test"
     Description: Task Execution Role for the service
   ServiceName:
     Description: Provide valid ECS Service name to be used
